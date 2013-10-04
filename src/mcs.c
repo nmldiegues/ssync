@@ -1,64 +1,43 @@
 #include "mcs.h"
 
 int mcs_trylock(mcs_lock *L, mcs_qnode_ptr I) {
-  I->next=NULL;
-#ifndef  __tile__
-  if (CAS_PTR(L, NULL, I)==NULL) return 0;
-  return 1;
-#else
-  MEM_BARRIER;
-  if (CAS_PTR( L, NULL, I)==NULL) return 0;
-  return 1;
-#endif
+    I->next=NULL;
+    if (CAS_PTR(L, NULL, I)==NULL) return 0;
+    return 1;
 
 }
 
 void mcs_acquire(mcs_lock *L, mcs_qnode_ptr I) 
 {
-  I->next = NULL;
-#ifndef  __tile__
-  mcs_qnode_ptr pred = (mcs_qnode*) SWAP_PTR((volatile void*) L, (void*) I);
-#else
-  MEM_BARRIER;
-  mcs_qnode_ptr pred = (mcs_qnode*) SWAP_PTR( L, I);
-#endif
-  if (pred == NULL) 		/* lock was free */
-    return;
-  I->waiting = 1; // word on which to spin
-  MEM_BARRIER;
-  pred->next = I; // make pred point to me
+    I->next = NULL;
+    mcs_qnode_ptr pred = (mcs_qnode*) SWAP_PTR((volatile void*) L, (void*) I);
+    if (pred == NULL) 		/* lock was free */
+        return;
+    I->waiting = 1; // word on which to spin
+    MEM_BARRIER;
+    pred->next = I; // make pred point to me
 
-#if defined(OPTERON_OPTIMIZE)
-  PREFETCHW(I);
-#endif	/* OPTERON_OPTIMIZE */
-  while (I->waiting != 0) 
+    while (I->waiting != 0)
     {
-      PAUSE;
-#if defined(OPTERON_OPTIMIZE)
-      pause_rep(23);
-      PREFETCHW(I);
-#endif	/* OPTERON_OPTIMIZE */
+        PAUSE;
     }
 
 }
 
 void mcs_release(mcs_lock *L, mcs_qnode_ptr I) 
 {
-  mcs_qnode_ptr succ;
-#if defined(OPTERON_OPTIMIZE)
-      PREFETCHW(I);
-#endif	/* OPTERON_OPTIMIZE */
-  if (!(succ = I->next)) /* I seem to have no succ. */
+    mcs_qnode_ptr succ;
+    if (!(succ = I->next)) /* I seem to have no succ. */
     { 
-      /* try to fix global pointer */
-      if (CAS_PTR(L, I, NULL) == I) 
-	return;
-      do {
-	succ = I->next;
-	PAUSE;
-      } while (!succ); // wait for successor
+        /* try to fix global pointer */
+        if (CAS_PTR(L, I, NULL) == I)
+            return;
+        do {
+            succ = I->next;
+            PAUSE;
+        } while (!succ); // wait for successor
     }
-  succ->waiting = 0;
+    succ->waiting = 0;
 }
 
 int is_free_mcs(mcs_lock *L ){
@@ -68,7 +47,7 @@ int is_free_mcs(mcs_lock *L ){
 
 /*
     Methods for easy lock array manipulation
-*/
+ */
 
 mcs_global_params* init_mcs_array_global(uint32_t num_locks) {
     DPRINT("Global mcs lock initialization\n");

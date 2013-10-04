@@ -1,31 +1,19 @@
 #include "clh.h"
 
 int clh_trylock(clh_lock * L, clh_qnode_ptr I) {
-  return 1;
+    return 1;
 }
 
 
 volatile clh_qnode* clh_acquire(clh_lock *L, clh_qnode* I ) 
 {
-  I->locked=1;
-#ifndef  __tile__
-  clh_qnode_ptr pred = (clh_qnode*) SWAP_PTR((volatile void*) (L), (void*) I);
-#else
-  MEM_BARRIER;
-  clh_qnode_ptr pred = (clh_qnode*) SWAP_PTR( L, I);
-#endif
-  if (pred == NULL) 		/* lock was free */
-    return NULL;
-#if defined(OPTERON_OPTIMIZE)
-  PREFETCHW(pred);
-#endif	/* OPTERON_OPTIMIZE */
-  while (pred->locked != 0) 
+    I->locked=1;
+    clh_qnode_ptr pred = (clh_qnode*) SWAP_PTR((volatile void*) (L), (void*) I);
+    if (pred == NULL) 		/* lock was free */
+        return NULL;
+    while (pred->locked != 0)
     {
-      PAUSE;
-#if defined(OPTERON_OPTIMIZE)
-      pause_rep(23);
-      PREFETCHW(pred);
-#endif	/* OPTERON_OPTIMIZE */
+        PAUSE;
     }
 
     return pred;
@@ -58,7 +46,7 @@ clh_local_params* init_clh_array_local(uint32_t thread_num, uint32_t num_locks) 
     uint32_t i;
     clh_local_params* local_params = (clh_local_params*)malloc(num_locks * sizeof(clh_local_params));
     for (i=0;i<num_locks;i++) {
-//        local_params[i]=(clh_local_params*)malloc(sizeof(clh_local_params));
+        //        local_params[i]=(clh_local_params*)malloc(sizeof(clh_local_params));
         local_params[i].my_qnode = (clh_qnode*) malloc(sizeof(clh_qnode));
         local_params[i].my_qnode->locked=0;
         local_params[i].my_pred = NULL;
@@ -85,8 +73,8 @@ clh_global_params init_clh_global() {
     uint32_t i;
     the_params.the_lock=(clh_lock*)malloc(sizeof(clh_lock));
     clh_qnode * a_node = (clh_qnode *) malloc(sizeof(clh_qnode));
-     a_node->locked=0;
-     *(the_params.the_lock) = a_node;
+    a_node->locked=0;
+    *(the_params.the_lock) = a_node;
     return the_params;
 }
 
@@ -96,7 +84,7 @@ clh_local_params init_clh_local(uint32_t thread_num) {
     //init its qnodes
     uint32_t i;
     clh_local_params local_params;
-//        local_params[i]=(clh_local_params*)malloc(sizeof(clh_local_params));
+    //        local_params[i]=(clh_local_params*)malloc(sizeof(clh_local_params));
     local_params.my_qnode = (clh_qnode*) malloc(sizeof(clh_qnode));
     local_params.my_qnode->locked=0;
     local_params.my_pred = NULL;
@@ -105,7 +93,7 @@ clh_local_params init_clh_local(uint32_t thread_num) {
 }
 
 void end_clh_local(clh_local_params the_params){
-   //empty method
+    //empty method
 }
 
 void end_clh_global(clh_global_params the_lock) {

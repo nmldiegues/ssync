@@ -8,13 +8,13 @@ __thread uint64_t ticket_acquires = 0;
 static inline uint32_t
 sub_abs(const uint32_t a, const uint32_t b)
 {
-  if (a > b)
+    if (a > b)
     {
-      return a - b;
+        return a - b;
     }
-  else
+    else
     {
-      return b - a;
+        return b - a;
     }
 }
 
@@ -35,121 +35,60 @@ int ticket_trylock(ticketlock_t* lock) {
 void
 ticket_acquire(ticketlock_t* lock) 
 {
-  uint32_t my_ticket = IAF_U32(&(lock->tail));
+    uint32_t my_ticket = IAF_U32(&(lock->tail));
 
 
-#if defined(OPTERON_OPTIMIZE)
-  uint32_t wait = TICKET_BASE_WAIT;
-  uint32_t distance_prev = 1;
-#  if defined(MEASURE_CONTENTION)
-  uint8_t once = 1;
-  ticket_acquires++;
-#  endif
+    /* backoff proportional to the distance would make sense even without the PREFETCHW */
+    /* however, I did some tests on the Niagara and it performed worse */
 
-  while (1)
-    {
-      PREFETCHW(lock);
-      uint32_t cur = lock->head;
-      if (cur == my_ticket)
-	{
-	  break;
-	}
-      uint32_t distance = sub_abs(cur, my_ticket);
-
-#  if defined(MEASURE_CONTENTION)
-      if (once)
-	{
-	  ticket_queued_total += distance;
-	  once = 0;
-	}
-#  endif
-
-      if (distance > 1)
-      	{
-	  if (distance != distance_prev)
-	    {
-	      distance_prev = distance;
-	      wait = TICKET_BASE_WAIT;
-	    }
-
-	  nop_rep(distance * wait);
-	  /* wait = (wait + TICKET_BASE_WAIT) & TICKET_MAX_WAIT; */
-      	}
-      else
-	{
-	  nop_rep(TICKET_WAIT_NEXT);
-	}
-
-      if (distance > 20)
-      	{
-      	  sched_yield();
-      	  /* pthread_yield(); */
-      	}
-    }
-
-#else  /* !OPTERON_OPTIMIZE */
-  /* backoff proportional to the distance would make sense even without the PREFETCHW */
-  /* however, I did some tests on the Niagara and it performed worse */
-
-#  if defined(OPTERON__) || defined(XEON)
 #    if defined(MEASURE_CONTENTION)
-  uint8_t once = 1;
-  ticket_acquires++;
+    uint8_t once = 1;
+    ticket_acquires++;
 #    endif
 
-  uint32_t wait = TICKET_BASE_WAIT;
-  uint32_t distance_prev = 1;
+    uint32_t wait = TICKET_BASE_WAIT;
+    uint32_t distance_prev = 1;
 
-  while (1)
+    while (1)
     {
-      uint32_t cur = lock->head;
-      if (cur == my_ticket)
-	{
-	  break;
-	}
-      uint32_t distance = sub_abs(cur, my_ticket);
+        uint32_t cur = lock->head;
+        if (cur == my_ticket)
+        {
+            break;
+        }
+        uint32_t distance = sub_abs(cur, my_ticket);
 
-      if (distance > 1)
-      	{
-	  if (distance != distance_prev)
-	    {
-	      distance_prev = distance;
-	      wait = TICKET_BASE_WAIT;
-	    }
+        if (distance > 1)
+        {
+            if (distance != distance_prev)
+            {
+                distance_prev = distance;
+                wait = TICKET_BASE_WAIT;
+            }
 
-	  nop_rep(distance * wait);
-	  /* wait = (wait + TICKET_BASE_WAIT) & TICKET_MAX_WAIT; */
-      	}
-      else
-	{
-	  nop_rep(TICKET_WAIT_NEXT);
-	}
+            nop_rep(distance * wait);
+            /* wait = (wait + TICKET_BASE_WAIT) & TICKET_MAX_WAIT; */
+        }
+        else
+        {
+            nop_rep(TICKET_WAIT_NEXT);
+        }
 
-      if (distance > 20)
-      	{
-      	  sched_yield();
-      	  /* pthread_yield(); */
-      	}
+        if (distance > 20)
+        {
+            sched_yield();
+            /* pthread_yield(); */
+        }
     }
-#  else
-  while (lock->head != my_ticket)
-    {
-      PAUSE;
-    }
-#  endif
-#endif	/* OPTERON_OPTIMIZE */
 }
 
 void ticket_release(ticketlock_t* lock) {
-#if defined(OPTERON_OPTIMIZE)
-  PREFETCHW(lock);
-#endif	/* OPTERON */
-  lock->head++;
+    lock->head++;
 }
 
 ticketlock_t create_ticketlock() {
     ticketlock_t the_lock;
-//    the_lock = (ticketlock_t*)malloc(sizeof(ticketlock_t));
+    //    the_lock = (ticketlock_t*)malloc(sizeof(ticketlock_t));
     the_lock.head=1;
     the_lock.tail=0;
     return the_lock;

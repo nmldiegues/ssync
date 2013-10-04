@@ -10,22 +10,12 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include <pthread.h>
 #include "utils.h"
 #include "atomic_ops.h"
 
-#ifdef __sparc__
-#define MAX_NUM_PROCESSES 64
-#elif defined(__tile__)
-#define MAX_NUM_PROCESSES 36
-#elif defined(OPTERON)
-#define MAX_NUM_PROCESSES 48
-#else
-#define MAX_NUM_PROCESSES 80
-#endif
+#define MAX_NUM_PROCESSES 8
 
 typedef struct flag_line {
     volatile uint16_t flag;
