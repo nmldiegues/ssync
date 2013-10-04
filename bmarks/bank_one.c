@@ -7,9 +7,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include "gl_lock.h"
 #include "atomic_ops.h"
 #include "utils.h"
@@ -88,13 +86,13 @@ int read_accounts(volatile account_t *a1, volatile account_t *a2,  int thread_id
 
     //local_lock_read(&gl);
     if (use_locks!=0){
-    acquire_read(&(local_th_data[thread_id]),&the_lock);
+        acquire_read(&(local_th_data[thread_id]),&the_lock);
     }
     amount+=a1->balance;
     amount+=a2->balance;
     if (use_locks!=0) {
-    MEM_BARRIER;
-    release_read(cluster_id, &(local_th_data[thread_id]),&the_lock);
+        MEM_BARRIER;
+        release_read(cluster_id, &(local_th_data[thread_id]),&the_lock);
     }
     //local_unlock_read(&gl);
 
@@ -114,13 +112,13 @@ int transfer(volatile account_t *src, volatile account_t *dst, int amount, int t
     }
     //local_lock_write(&gl);
     if (use_locks!=0) {
-    acquire_write(&(local_th_data[thread_id]),&the_lock);
+        acquire_write(&(local_th_data[thread_id]),&the_lock);
     }
     src->balance-=amount;
     dst->balance+=amount;
     if (use_locks!=0) {
-    MEM_BARRIER;
-    release_write(cluster_id, &(local_th_data[thread_id]),&the_lock);
+        MEM_BARRIER;
+        release_write(cluster_id, &(local_th_data[thread_id]),&the_lock);
     }
     //local_unlock_write(&gl);
 
@@ -197,26 +195,26 @@ void barrier_cross(barrier_t *b)
  * ################################################################### */
 
 typedef struct thread_data {
-  union
-  {
-    struct
+    union
     {
-      bank_t *bank;
-      barrier_t *barrier;
-      unsigned long nb_transfer;
-      unsigned long nb_read_all;
-      unsigned long nb_write_all;
-      unsigned int seed;
-      int id;
-      int read_all;
-      int read_threads;
-      int write_all;
-      int write_threads;
-      int disjoint;
-      int nb_threads;
+        struct
+        {
+            bank_t *bank;
+            barrier_t *barrier;
+            unsigned long nb_transfer;
+            unsigned long nb_read_all;
+            unsigned long nb_write_all;
+            unsigned int seed;
+            int id;
+            int read_all;
+            int read_threads;
+            int write_all;
+            int write_threads;
+            int disjoint;
+            int nb_threads;
+        };
+        uint8_t padding[2 * CACHE_LINE_SIZE];
     };
-    uint8_t padding[2 * CACHE_LINE_SIZE];
-  };
 } thread_data_t;
 
 void *test(void *data)
@@ -226,12 +224,8 @@ void *test(void *data)
     thread_data_t *d = (thread_data_t *)data;
     seeds = seed_rand();
 
-//#ifdef __sparc__
     phys_id = the_cores[d->id];
     cluster_id = get_cluster(phys_id);
-//#else
-//    phys_id = d->id;
-//#endif
     /* Prepare for disjoint access */
     if (d->disjoint) {
         rand_max = d->bank->size / d->nb_threads;
@@ -331,20 +325,20 @@ int main(int argc, char **argv)
 {
     set_cpu(the_cores[0]);
     struct option long_options[] = {
-        // These options don't set a flag
-        {"help",                      no_argument,       NULL, 'h'},
-        {"accounts",                  required_argument, NULL, 'a'},
-        {"contention-manager",        required_argument, NULL, 'c'},
-        {"duration",                  required_argument, NULL, 'd'},
-        {"num-threads",               required_argument, NULL, 'n'},
-        {"read-all-rate",             required_argument, NULL, 'r'},
-        {"read-threads",              required_argument, NULL, 'R'},
-        {"seed",                      required_argument, NULL, 's'},
-        {"use-locks",                 required_argument, NULL, 'l'},
-        {"write-all-rate",            required_argument, NULL, 'w'},
-        {"write-threads",             required_argument, NULL, 'W'},
-        {"disjoint",                  no_argument,       NULL, 'j'},
-        {NULL, 0, NULL, 0}
+            // These options don't set a flag
+            {"help",                      no_argument,       NULL, 'h'},
+            {"accounts",                  required_argument, NULL, 'a'},
+            {"contention-manager",        required_argument, NULL, 'c'},
+            {"duration",                  required_argument, NULL, 'd'},
+            {"num-threads",               required_argument, NULL, 'n'},
+            {"read-all-rate",             required_argument, NULL, 'r'},
+            {"read-threads",              required_argument, NULL, 'R'},
+            {"seed",                      required_argument, NULL, 's'},
+            {"use-locks",                 required_argument, NULL, 'l'},
+            {"write-all-rate",            required_argument, NULL, 'w'},
+            {"write-threads",             required_argument, NULL, 'W'},
+            {"disjoint",                  no_argument,       NULL, 'j'},
+            {NULL, 0, NULL, 0}
     };
 
     bank_t *bank;
@@ -381,73 +375,73 @@ int main(int argc, char **argv)
             c = long_options[i].val;
 
         switch(c) {
-            case 0:
-                /* Flag is automatically set */
-                break;
-            case 'h':
-                printf("bank -- lock stress test\n"
-                        "\n"
-                        "Usage:\n"
-                        "  bank [options...]\n"
-                        "\n"
-                        "Options:\n"
-                        "  -h, --help\n"
-                        "        Print this message\n"
-                        "  -a, --accounts <int>\n"
-                        "        Number of accounts in the bank (default=" XSTR(DEFAULT_NB_ACCOUNTS) ")\n"
-                        "  -d, --duration <int>\n"
-                        "        Test duration in milliseconds (0=infinite, default=" XSTR(DEFAULT_DURATION) ")\n"
-                        "  -n, --num-threads <int>\n"
-                        "        Number of threads (default=" XSTR(DEFAULT_NB_THREADS) ")\n"
-                        "  -l, --use-locks <int>\n"
-                        "        Use locks or not (default=" XSTR(DEFAULT_USE_LOCKS) ")\n"
-                        "  -r, --read-all-rate <int>\n"
-                        "        Percentage of read-all transactions (default=" XSTR(DEFAULT_READ_ALL) ")\n"
-                        "  -R, --read-threads <int>\n"
-                        "        Number of threads issuing only read-all transactions (default=" XSTR(DEFAULT_READ_THREADS) ")\n"
-                        "  -s, --seed <int>\n"
-                        "        RNG seed (0=time-based, default=" XSTR(DEFAULT_SEED) ")\n"
-                        "  -w, --write-all-rate <int>\n"
-                        "        Percentage of write-all transactions (default=" XSTR(DEFAULT_WRITE_ALL) ")\n"
-                        "  -W, --write-threads <int>\n"
-                        "        Number of threads issuing only write-all transactions (default=" XSTR(DEFAULT_WRITE_THREADS) ")\n"
-                        );
-                exit(0);
-            case 'a':
-                nb_accounts = atoi(optarg);
-                break;
-            case 'd':
-                duration = atoi(optarg);
-                break;
-            case 'n':
-                nb_threads = atoi(optarg);
-                break;
-            case 'r':
-                read_all = atoi(optarg);
-                break;
-            case 'l':
-                use_locks = atoi(optarg);
-                break;
-            case 'R':
-                read_threads = atoi(optarg);
-                break;
-            case 's':
-                seed = atoi(optarg);
-                break;
-            case 'w':
-                write_all = atoi(optarg);
-                break;
-            case 'W':
-                write_threads = atoi(optarg);
-                break;
-            case 'j':
-                disjoint = 1;
-                break;
-            case '?':
-                printf("Use -h or --help for help\n");
-                exit(0);
-            default:
-                exit(1);
+        case 0:
+            /* Flag is automatically set */
+            break;
+        case 'h':
+            printf("bank -- lock stress test\n"
+                    "\n"
+                    "Usage:\n"
+                    "  bank [options...]\n"
+                    "\n"
+                    "Options:\n"
+                    "  -h, --help\n"
+                    "        Print this message\n"
+                    "  -a, --accounts <int>\n"
+                    "        Number of accounts in the bank (default=" XSTR(DEFAULT_NB_ACCOUNTS) ")\n"
+                    "  -d, --duration <int>\n"
+                    "        Test duration in milliseconds (0=infinite, default=" XSTR(DEFAULT_DURATION) ")\n"
+                    "  -n, --num-threads <int>\n"
+                    "        Number of threads (default=" XSTR(DEFAULT_NB_THREADS) ")\n"
+                    "  -l, --use-locks <int>\n"
+                    "        Use locks or not (default=" XSTR(DEFAULT_USE_LOCKS) ")\n"
+                    "  -r, --read-all-rate <int>\n"
+                    "        Percentage of read-all transactions (default=" XSTR(DEFAULT_READ_ALL) ")\n"
+                    "  -R, --read-threads <int>\n"
+                    "        Number of threads issuing only read-all transactions (default=" XSTR(DEFAULT_READ_THREADS) ")\n"
+                    "  -s, --seed <int>\n"
+                    "        RNG seed (0=time-based, default=" XSTR(DEFAULT_SEED) ")\n"
+                    "  -w, --write-all-rate <int>\n"
+                    "        Percentage of write-all transactions (default=" XSTR(DEFAULT_WRITE_ALL) ")\n"
+                    "  -W, --write-threads <int>\n"
+                    "        Number of threads issuing only write-all transactions (default=" XSTR(DEFAULT_WRITE_THREADS) ")\n"
+            );
+            exit(0);
+        case 'a':
+            nb_accounts = atoi(optarg);
+            break;
+        case 'd':
+            duration = atoi(optarg);
+            break;
+        case 'n':
+            nb_threads = atoi(optarg);
+            break;
+        case 'r':
+            read_all = atoi(optarg);
+            break;
+        case 'l':
+            use_locks = atoi(optarg);
+            break;
+        case 'R':
+            read_threads = atoi(optarg);
+            break;
+        case 's':
+            seed = atoi(optarg);
+            break;
+        case 'w':
+            write_all = atoi(optarg);
+            break;
+        case 'W':
+            write_threads = atoi(optarg);
+            break;
+        case 'j':
+            disjoint = 1;
+            break;
+        case '?':
+            printf("Use -h or --help for help\n");
+            exit(0);
+        default:
+            exit(1);
         }
     }
 
@@ -458,7 +452,7 @@ int main(int argc, char **argv)
     assert(read_threads + write_threads <= nb_threads);
 
     nb_accounts = pow2roundup(nb_accounts);
-//#ifdef PRINT_OUTPUT
+    //#ifdef PRINT_OUTPUT
     printf("Nb accounts    : %d\n", nb_accounts);
     printf("Duration       : %d\n", duration);
     printf("Nb threads     : %d\n", nb_threads);
@@ -472,7 +466,7 @@ int main(int argc, char **argv)
             (int)sizeof(int),
             (int)sizeof(long),
             (int)sizeof(void *));
-//#endif
+    //#endif
     timeout.tv_sec = duration / 1000;
     timeout.tv_nsec = (duration % 1000) * 1000000;
 
@@ -588,13 +582,13 @@ int main(int argc, char **argv)
         reads += data[i].nb_read_all;
         writes += data[i].nb_write_all;
     }
-//#ifdef PRINT_OUTPUT
+    //#ifdef PRINT_OUTPUT
     printf("Bank total    : %d (expected: 0)\n", total(bank, 0));
     printf("Duration      : %d (ms)\n", duration);
     printf("#read txs     : %lu ( %f / s)\n", reads, reads * 1000.0 / duration);
     printf("#write txs    : %lu ( %f / s)\n", writes, writes * 1000.0 / duration);
     printf("#update txs   : %lu ( %f / s)\n", updates, updates * 1000.0 / duration);
-//#endif
+    //#endif
     printf("#txs          : %lu ( %lu / s)\n", reads + writes + updates,(unsigned long)((reads + writes + updates) * 1000.0 / duration));
     /* Delete bank and accounts */
     free((void*) bank->accounts);

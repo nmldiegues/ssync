@@ -7,9 +7,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include "utils.h"
 #include "atomic_ops.h"
 
@@ -17,11 +15,7 @@
 #define ALIGNMENT
 //#define TEST_CAS
 
-#ifdef __tile__
-typedef volatile uint32_t data_type;
-#else
 typedef volatile uint8_t data_type;
-#endif
 
 #define DEFAULT_NUM_ENTRIES 1024
 #define DEFAULT_NUM_THREADS 1
@@ -101,10 +95,6 @@ void *test(void *data)
     data_type old_data;
     data_type new_data;
     uint64_t res;
-    //#ifdef __sparc__
-    //#else
-    //    phys_id = d->id;
-    //#endif
 
     seeds = seed_rand();
     rand_max = num_entries - 1;
@@ -138,7 +128,7 @@ void *test(void *data)
                 res = CAS_U8(&(the_data[entry].data),0,1);
             }
         }
-    //    MEM_BARRIER;
+        //    MEM_BARRIER;
         //    } while(res!=0);
 #elif defined(TEST_SWAP)
         //    do {
@@ -157,20 +147,20 @@ void *test(void *data)
         //    } while(res!=0);
 #elif defined(TEST_CTR)
         if (do_not_measure) {
-        do {
-            old_data=the_data[entry].data;
-            new_data=old_data+1;
-        } while (CAS_U8(&(the_data[entry].data),old_data,new_data)!=old_data);
+            do {
+                old_data=the_data[entry].data;
+                new_data=old_data+1;
+            } while (CAS_U8(&(the_data[entry].data),old_data,new_data)!=old_data);
         } else {
             t1=getticks();
             do {
                 old_data=the_data[entry].data;
-             new_data=old_data+1;
-           } while (CAS_U8(&(the_data[entry].data),old_data,new_data)!=old_data);
-           t2=getticks();
+                new_data=old_data+1;
+            } while (CAS_U8(&(the_data[entry].data),old_data,new_data)!=old_data);
+            t2=getticks();
 
         }
-       // MEM_BARRIER;
+        // MEM_BARRIER;
 #elif defined(TEST_TAS)
         //    do {
         if (do_not_measure) {
@@ -181,7 +171,7 @@ void *test(void *data)
             t2=getticks();
         }
         if (res==0) {
-//            MEM_BARRIER;
+            //            MEM_BARRIER;
             the_data[entry].data = 0;
         }
 
@@ -189,12 +179,12 @@ void *test(void *data)
 #elif defined(TEST_FAI)
         if (do_not_measure) {
             FAI_U8(&(the_data[entry].data));
-          } else {
+        } else {
             t1=getticks();
             FAI_U8(&(the_data[entry].data));
             t2=getticks();
         }
-//        MEM_BARRIER;
+        //        MEM_BARRIER;
 #else
         perror("No test primitive specified");
 #endif 
@@ -237,14 +227,14 @@ int main(int argc, char* const argv[])
     fprintf(stderr, "Number of entries per cache line: %lu\n",CACHE_LINE_SIZE / sizeof(data_t));
 #endif
     struct option long_options[] = {
-        // These options don't set a flag
-        {"help",                      no_argument,       NULL, 'h'},
-        {"entries",                   required_argument, NULL, 'e'},
-        {"duration",                  required_argument, NULL, 'd'},
-        {"pause",                     required_argument, NULL, 'p'},
-        {"num-threads",               required_argument, NULL, 'n'},
-        {"seed",                      required_argument, NULL, 's'},
-        {NULL, 0, NULL, 0}
+            // These options don't set a flag
+            {"help",                      no_argument,       NULL, 'h'},
+            {"entries",                   required_argument, NULL, 'e'},
+            {"duration",                  required_argument, NULL, 'd'},
+            {"pause",                     required_argument, NULL, 'p'},
+            {"num-threads",               required_argument, NULL, 'n'},
+            {"seed",                      required_argument, NULL, 's'},
+            {NULL, 0, NULL, 0}
     };
 
     int i, c;
@@ -276,50 +266,50 @@ int main(int argc, char* const argv[])
             c = long_options[i].val;
 
         switch(c) {
-            case 0:
-                /* Flag is automatically set */
-                break;
-            case 'h':
-                printf("lock stress test\n"
-                        "\n"
-                        "Usage:\n"
-                        "  stress_test [options...]\n"
-                        "\n"
-                        "Options:\n"
-                        "  -h, --help\n"
-                        "        Print this message\n"
-                        "  -e, --entires <int>\n"
-                        "        Number of entries in the test (default=" XSTR(DEFAULT_NUM_LOCKS) ")\n"
-                        "  -d, --duration <int>\n"
-                        "        Test duration in milliseconds (0=infinite, default=" XSTR(DEFAULT_DURATION) ")\n"
-                        "  -p, --pause <int>\n"
-                        "        Pause between consecutive atomic operations in cycles (default=" XSTR(DEFAULT_DURATION) ")\n"
-                        "  -n, --num-threads <int>\n"
-                        "        Number of threads (default=" XSTR(DEFAULT_NUM_THREADS) ")\n"
-                        "  -s, --seed <int>\n"
-                        "        RNG seed (0=time-based, default=" XSTR(DEFAULT_SEED) ")\n"
-                      );
-                exit(0);
-            case 'e':
-                num_entries = atoi(optarg);
-                break;
-            case 'd':
-                duration = atoi(optarg);
-                break;
-            case 'n':
-                num_threads = atoi(optarg);
-                break;
-            case 'p':
-                op_pause = atoi(optarg);
-                break;
-            case 's':
-                seed = atoi(optarg);
-                break;
-            case '?':
-                printf("Use -h or --help for help\n");
-                exit(0);
-            default:
-                exit(1);
+        case 0:
+            /* Flag is automatically set */
+            break;
+        case 'h':
+            printf("lock stress test\n"
+                    "\n"
+                    "Usage:\n"
+                    "  stress_test [options...]\n"
+                    "\n"
+                    "Options:\n"
+                    "  -h, --help\n"
+                    "        Print this message\n"
+                    "  -e, --entires <int>\n"
+                    "        Number of entries in the test (default=" XSTR(DEFAULT_NUM_LOCKS) ")\n"
+                    "  -d, --duration <int>\n"
+                    "        Test duration in milliseconds (0=infinite, default=" XSTR(DEFAULT_DURATION) ")\n"
+                    "  -p, --pause <int>\n"
+                    "        Pause between consecutive atomic operations in cycles (default=" XSTR(DEFAULT_DURATION) ")\n"
+                    "  -n, --num-threads <int>\n"
+                    "        Number of threads (default=" XSTR(DEFAULT_NUM_THREADS) ")\n"
+                    "  -s, --seed <int>\n"
+                    "        RNG seed (0=time-based, default=" XSTR(DEFAULT_SEED) ")\n"
+            );
+            exit(0);
+        case 'e':
+            num_entries = atoi(optarg);
+            break;
+        case 'd':
+            duration = atoi(optarg);
+            break;
+        case 'n':
+            num_threads = atoi(optarg);
+            break;
+        case 'p':
+            op_pause = atoi(optarg);
+            break;
+        case 's':
+            seed = atoi(optarg);
+            break;
+        case '?':
+            printf("Use -h or --help for help\n");
+            exit(0);
+        default:
+            exit(1);
         }
     }
     op_pause=op_pause/NOP_DURATION;

@@ -9,9 +9,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include <pthread.h>
 #include "utils.h"
 #include "atomic_ops.h"
@@ -43,7 +41,7 @@ typedef struct mcs_global_params {
 
 /*
     Methods for easy lock array manipulation
-*/
+ */
 
 mcs_global_params* init_mcs_array_global(uint32_t num_locks);
 
@@ -54,7 +52,7 @@ void end_mcs_array_local(mcs_qnode** the_qnodes, uint32_t size);
 void end_mcs_array_global(mcs_global_params* the_locks, uint32_t size);
 /*
     single lock manipulation
-*/
+ */
 
 mcs_global_params init_mcs_global();
 

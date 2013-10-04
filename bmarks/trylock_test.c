@@ -8,9 +8,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include "gl_lock.h"
 #include "atomic_ops.h"
 #include "utils.h"
@@ -101,12 +99,8 @@ typedef struct thread_data {
 void *test(void *data)
 {
     thread_data_t *d = (thread_data_t *)data;
-//#ifdef __sparc__
     phys_id = the_cores[d->id];
     cluster_id = get_cluster(phys_id);
-//#else
-//    phys_id = d->id;
-//#endif
     /* local initialization of locks */
     local_th_data[d->id] = init_lock_array_local(phys_id, num_locks, the_locks);
 
@@ -124,8 +118,8 @@ void *test(void *data)
         while (head != my_ticket) {
             PAUSE;
         }
-//        MEM_BARRIER;
-//        __sync_synchronize();
+        //        MEM_BARRIER;
+        //        __sync_synchronize();
         begin = getticks();
         while (na_trylock(&local_d[1],&the_locks[1]) !=0) {
             fprintf(stderr, "%d: Busy!\n", d->id);
@@ -139,14 +133,14 @@ void *test(void *data)
         MEM_BARRIER;
 #endif
         d->release_time+=getticks() - begin_release - correction;
-//        MEM_BARRIER;
-//        __sync_synchronize();
+        //        MEM_BARRIER;
+        //        __sync_synchronize();
 #ifdef PRINT_OUTPUT
         fprintf(stderr, "%d %llu\n",d->id, (unsigned long long int) end);
 #endif
         head++;
         d->num_acquires++;
-    if (acq_delay>0) {
+        if (acq_delay>0) {
             cpause(acq_delay);
         }
     }
@@ -171,15 +165,15 @@ int main(int argc, char **argv)
 {
     set_cpu(the_cores[0]);
     struct option long_options[] = {
-        // These options don't set a flag
-        {"help",                      no_argument,       NULL, 'h'},
-        {"locks",                     required_argument, NULL, 'l'},
-        {"duration",                  required_argument, NULL, 'd'},
-        {"num-threads",               required_argument, NULL, 'n'},
-        {"acquire",                   required_argument, NULL, 'a'},
-        {"pause",                     required_argument, NULL, 'p'},
-        {"seed",                      required_argument, NULL, 's'},
-        {NULL, 0, NULL, 0}
+            // These options don't set a flag
+            {"help",                      no_argument,       NULL, 'h'},
+            {"locks",                     required_argument, NULL, 'l'},
+            {"duration",                  required_argument, NULL, 'd'},
+            {"num-threads",               required_argument, NULL, 'n'},
+            {"acquire",                   required_argument, NULL, 'a'},
+            {"pause",                     required_argument, NULL, 'p'},
+            {"seed",                      required_argument, NULL, 's'},
+            {NULL, 0, NULL, 0}
     };
 
     correction = getticks_correction_calc(); 
@@ -214,55 +208,55 @@ int main(int argc, char **argv)
             c = long_options[i].val;
 
         switch(c) {
-            case 0:
-                /* Flag is automatically set */
-                break;
-            case 'h':
-                printf("lock stress test\n"
-                        "\n"
-                        "Usage:\n"
-                        "  stress_test [options...]\n"
-                        "\n"
-                        "Options:\n"
-                        "  -h, --help\n"
-                        "        Print this message\n"
-                        "  -l, --lcoks <int>\n"
-                        "        Number of locks in the test (default=" XSTR(DEFAULT_NUM_LOCKS) ")\n"
-                        "  -d, --duration <int>\n"
-                        "        Test duration in milliseconds (0=infinite, default=" XSTR(DEFAULT_DURATION) ")\n"
-                        "  -n, --num-threads <int>\n"
-                        "        Number of threads (default=" XSTR(DEFAULT_NUM_THREADS) ")\n"
-                        "  -a, --acquire <int>\n"
-                        "        Number of cycles a lock is held (default=" XSTR(DEFAULT_ACQ_DURATION) ")\n"
-                        "  -p, --pause <int>\n"
-                        "        Number of cycles between a lock release and the next acquire (default=" XSTR(DEFAULT_ACQ_DELAY) ")\n"
-                        "  -s, --seed <int>\n"
-                        "        RNG seed (0=time-based, default=" XSTR(DEFAULT_SEED) ")\n"
-                      );
-                exit(0);
-            case 'l':
-                num_locks = atoi(optarg);
-                break;
-            case 'd':
-                duration = atoi(optarg);
-                break;
-            case 'n':
-                num_threads = atoi(optarg);
-                break;
-            case 'a':
-                acq_duration = atoi(optarg);
-                break;
-            case 'p':
-                acq_delay = atoi(optarg);
-                break;
-            case 's':
-                seed = atoi(optarg);
-                break;
-            case '?':
-                printf("Use -h or --help for help\n");
-                exit(0);
-            default:
-                exit(1);
+        case 0:
+            /* Flag is automatically set */
+            break;
+        case 'h':
+            printf("lock stress test\n"
+                    "\n"
+                    "Usage:\n"
+                    "  stress_test [options...]\n"
+                    "\n"
+                    "Options:\n"
+                    "  -h, --help\n"
+                    "        Print this message\n"
+                    "  -l, --lcoks <int>\n"
+                    "        Number of locks in the test (default=" XSTR(DEFAULT_NUM_LOCKS) ")\n"
+                    "  -d, --duration <int>\n"
+                    "        Test duration in milliseconds (0=infinite, default=" XSTR(DEFAULT_DURATION) ")\n"
+                    "  -n, --num-threads <int>\n"
+                    "        Number of threads (default=" XSTR(DEFAULT_NUM_THREADS) ")\n"
+                    "  -a, --acquire <int>\n"
+                    "        Number of cycles a lock is held (default=" XSTR(DEFAULT_ACQ_DURATION) ")\n"
+                    "  -p, --pause <int>\n"
+                    "        Number of cycles between a lock release and the next acquire (default=" XSTR(DEFAULT_ACQ_DELAY) ")\n"
+                    "  -s, --seed <int>\n"
+                    "        RNG seed (0=time-based, default=" XSTR(DEFAULT_SEED) ")\n"
+            );
+            exit(0);
+        case 'l':
+            num_locks = atoi(optarg);
+            break;
+        case 'd':
+            duration = atoi(optarg);
+            break;
+        case 'n':
+            num_threads = atoi(optarg);
+            break;
+        case 'a':
+            acq_duration = atoi(optarg);
+            break;
+        case 'p':
+            acq_delay = atoi(optarg);
+            break;
+        case 's':
+            seed = atoi(optarg);
+            break;
+        case '?':
+            printf("Use -h or --help for help\n");
+            exit(0);
+        default:
+            exit(1);
         }
     }
 

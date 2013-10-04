@@ -9,9 +9,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include <pthread.h>
 #include "utils.h"
 #include "atomic_ops.h"

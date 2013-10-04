@@ -10,12 +10,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#ifndef __sparc__
-#  ifndef __tile__
-#    include <numa.h>
-#    include <emmintrin.h>
-#  endif
-#endif
+#include <numa.h>
+#include <emmintrin.h>
 #include <pthread.h>
 #include <assert.h>
 #include "utils.h"
@@ -26,22 +22,22 @@
 
 typedef struct htlock_global
 {
-  volatile uint32_t nxt;
-  volatile uint32_t cur;
-  uint8_t padding[CACHE_LINE_SIZE - 8];
+    volatile uint32_t nxt;
+    volatile uint32_t cur;
+    uint8_t padding[CACHE_LINE_SIZE - 8];
 } htlock_global_t;
 
 typedef struct htlock_local
 {
-  volatile int32_t nxt;
-  volatile int32_t cur;
-  uint8_t padding[CACHE_LINE_SIZE - 8];
+    volatile int32_t nxt;
+    volatile int32_t cur;
+    uint8_t padding[CACHE_LINE_SIZE - 8];
 } htlock_local_t;
 
 typedef struct ALIGNED(CACHE_LINE_SIZE) htlock
 {
-  htlock_global_t* global;
-  htlock_local_t* local[NUMBER_OF_SOCKETS];
+    htlock_global_t* global;
+    htlock_local_t* local[NUMBER_OF_SOCKETS];
 } htlock_t;
 
 extern htlock_t* create_htlock();
@@ -61,19 +57,19 @@ extern inline void htlock_release_try(htlock_t* l);	/* trylock rls */
 static inline void 
 wait_cycles(uint64_t cycles)
 {
-  if (cycles < 256)
+    if (cycles < 256)
     {
-      cycles /= 6;
-      while (cycles--)
-	{
-        PAUSE;
-	}
+        cycles /= 6;
+        while (cycles--)
+        {
+            PAUSE;
+        }
     }
-  else
+    else
     {
-      ticks _start_ticks = getticks();
-      ticks _end_ticks = _start_ticks + cycles - 130;
-      while (getticks() < _end_ticks);
+        ticks _start_ticks = getticks();
+        ticks _end_ticks = _start_ticks + cycles - 130;
+        while (getticks() < _end_ticks);
     }
 }
 

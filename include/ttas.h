@@ -10,9 +10,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include <pthread.h>
 #include "atomic_ops.h"
 #include "utils.h"
@@ -22,11 +20,7 @@
 #define MAX_DELAY 1000
 
 typedef volatile uint32_t ttas_index_t;
-#ifdef __tile__
-typedef uint32_t ttas_lock_data_t;
-#else
 typedef uint8_t ttas_lock_data_t;
-#endif
 
 typedef struct ttas_lock_t {
     union {
@@ -59,7 +53,7 @@ void ttas_unlock(ttas_lock_t* the_lock);
 int is_free_ttas(ttas_lock_t * the_lock);
 /*
     Some methods for easy lock array manipluation
-*/
+ */
 
 ttas_lock_t* init_ttas_array_global(uint32_t num_locks);
 

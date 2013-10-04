@@ -7,9 +7,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include "utils.h"
 #include "atomic_ops.h"
 
@@ -19,11 +17,7 @@
 
 __thread uint32_t phys_id;
 
-#ifdef __tile__
-typedef volatile uint32_t data_type;
-#else
 typedef volatile uint8_t data_type;
-#endif
 
 #define DEFAULT_NUM_ENTRIES 1024
 #define DEFAULT_NUM_THREADS 1
@@ -90,14 +84,10 @@ typedef struct ALIGNED(64) thread_data {
 
 void *test(void *data)
 {
-  int rand_max;
+    int rand_max;
     thread_data_t *d = (thread_data_t *)data;
     uint64_t res;
-//#ifdef __sparc__
     phys_id= the_cores[d->id];
-//#else
-//    phys_id=d->id;
-//#endif
     set_cpu(phys_id);
 
     seeds = seed_rand();
@@ -108,28 +98,28 @@ void *test(void *data)
     /* Wait on barrier */
     barrier_cross(d->barrier);
     int entry;
-    
+
     while (stop == 0) {
-    if (num_entries==1) {
+        if (num_entries==1) {
             entry=0;
         } else {
             entry =(int) my_random(&(seeds[0]),&(seeds[1]),&(seeds[2])) & rand_max;
         }
-    //   entry = (int)(erand48(seed) * rand_max) + rand_min;
+        //   entry = (int)(erand48(seed) * rand_max) + rand_min;
 #ifdef TEST_CAS
-    do {
-    res = CAS_U8(&(the_data[entry].data),0,1);
-    } while(res!=0);
+        do {
+            res = CAS_U8(&(the_data[entry].data),0,1);
+        } while(res!=0);
 #elif defined(TEST_TAS)
-    do {
-     res = TAS_U8(&(the_data[entry].data));
-    } while (res!=0);
+        do {
+            res = TAS_U8(&(the_data[entry].data));
+        } while (res!=0);
 #elif defined(TEST_FAI)
-    FAI_U8(&(the_data[entry].data));
+        FAI_U8(&(the_data[entry].data));
 #else
-perror("No test primitive specified");
+        perror("No test primitive specified");
 #endif 
-MEM_BARRIER;
+        MEM_BARRIER;
         the_data[entry].data = 0;
         d->num_operations++;
         if (op_pause>0) {
@@ -155,20 +145,20 @@ void catcher(int sig)
 
 int main(int argc, char* const argv[])
 {
-set_cpu(the_cores[0]);
+    set_cpu(the_cores[0]);
 #ifdef PRINT_OUTPUT
     fprintf(stderr, "The size of the data being tested: %lu\n",sizeof(data_type));
     fprintf(stderr, "Number of entries per cache line: %lu\n",CACHE_LINE_SIZE / sizeof(data_t));
 #endif
     struct option long_options[] = {
-        // These options don't set a flag
-        {"help",                      no_argument,       NULL, 'h'},
-        {"entries",                   required_argument, NULL, 'e'},
-        {"duration",                  required_argument, NULL, 'd'},
-        {"pause",                     required_argument, NULL, 'p'},
-        {"num-threads",               required_argument, NULL, 'n'},
-        {"seed",                      required_argument, NULL, 's'},
-        {NULL, 0, NULL, 0}
+            // These options don't set a flag
+            {"help",                      no_argument,       NULL, 'h'},
+            {"entries",                   required_argument, NULL, 'e'},
+            {"duration",                  required_argument, NULL, 'd'},
+            {"pause",                     required_argument, NULL, 'p'},
+            {"num-threads",               required_argument, NULL, 'n'},
+            {"seed",                      required_argument, NULL, 's'},
+            {NULL, 0, NULL, 0}
     };
 
     int i, c;
@@ -178,7 +168,7 @@ set_cpu(the_cores[0]);
     barrier_t barrier;
     struct timeval start, end;
     struct timespec timeout;
- 
+
     num_entries = DEFAULT_NUM_ENTRIES;
     num_threads = DEFAULT_NUM_THREADS;
     duration = DEFAULT_DURATION;
@@ -198,50 +188,50 @@ set_cpu(the_cores[0]);
             c = long_options[i].val;
 
         switch(c) {
-            case 0:
-                /* Flag is automatically set */
-                break;
-            case 'h':
-                printf("lock stress test\n"
-                        "\n"
-                        "Usage:\n"
-                        "  stress_test [options...]\n"
-                        "\n"
-                        "Options:\n"
-                        "  -h, --help\n"
-                        "        Print this message\n"
-                        "  -e, --entires <int>\n"
-                        "        Number of entries in the test (default=" XSTR(DEFAULT_NUM_LOCKS) ")\n"
-                        "  -d, --duration <int>\n"
-                        "        Test duration in milliseconds (0=infinite, default=" XSTR(DEFAULT_DURATION) ")\n"
-                        "  -p, --pause <int>\n"
-                        "        Pause between consecutive atomic operations in cycles (default=" XSTR(DEFAULT_DURATION) ")\n"
-                        "  -n, --num-threads <int>\n"
-                        "        Number of threads (default=" XSTR(DEFAULT_NUM_THREADS) ")\n"
-                        "  -s, --seed <int>\n"
-                        "        RNG seed (0=time-based, default=" XSTR(DEFAULT_SEED) ")\n"
-                        );
-                exit(0);
-            case 'e':
-                num_entries = atoi(optarg);
-                break;
-            case 'd':
-                duration = atoi(optarg);
-                break;
-            case 'n':
-                num_threads = atoi(optarg);
-                break;
-            case 'p':
-                op_pause = atoi(optarg);
-                break;
-            case 's':
-                seed = atoi(optarg);
-                break;
-            case '?':
-                printf("Use -h or --help for help\n");
-                exit(0);
-            default:
-                exit(1);
+        case 0:
+            /* Flag is automatically set */
+            break;
+        case 'h':
+            printf("lock stress test\n"
+                    "\n"
+                    "Usage:\n"
+                    "  stress_test [options...]\n"
+                    "\n"
+                    "Options:\n"
+                    "  -h, --help\n"
+                    "        Print this message\n"
+                    "  -e, --entires <int>\n"
+                    "        Number of entries in the test (default=" XSTR(DEFAULT_NUM_LOCKS) ")\n"
+                    "  -d, --duration <int>\n"
+                    "        Test duration in milliseconds (0=infinite, default=" XSTR(DEFAULT_DURATION) ")\n"
+                    "  -p, --pause <int>\n"
+                    "        Pause between consecutive atomic operations in cycles (default=" XSTR(DEFAULT_DURATION) ")\n"
+                    "  -n, --num-threads <int>\n"
+                    "        Number of threads (default=" XSTR(DEFAULT_NUM_THREADS) ")\n"
+                    "  -s, --seed <int>\n"
+                    "        RNG seed (0=time-based, default=" XSTR(DEFAULT_SEED) ")\n"
+            );
+            exit(0);
+        case 'e':
+            num_entries = atoi(optarg);
+            break;
+        case 'd':
+            duration = atoi(optarg);
+            break;
+        case 'n':
+            num_threads = atoi(optarg);
+            break;
+        case 'p':
+            op_pause = atoi(optarg);
+            break;
+        case 's':
+            seed = atoi(optarg);
+            break;
+        case '?':
+            printf("Use -h or --help for help\n");
+            exit(0);
+        default:
+            exit(1);
         }
     }
 
@@ -264,7 +254,7 @@ set_cpu(the_cores[0]);
     timeout.tv_sec = duration / 1000;
     timeout.tv_nsec = (duration % 1000) * 1000000;
 
- 
+
     the_data = (data_t*)malloc(num_entries * sizeof(data_t));
     for (i = 0; i < num_entries; i++) {
         the_data[i].data=0;
@@ -341,7 +331,7 @@ set_cpu(the_cores[0]);
     }
 
     duration = (end.tv_sec * 1000 + end.tv_usec / 1000) - (start.tv_sec * 1000 + start.tv_usec / 1000);
-    
+
     unsigned long operations = 0;
     for (i = 0; i < num_threads; i++) {
 #ifdef PRINT_OUTPUT
@@ -361,6 +351,6 @@ set_cpu(the_cores[0]);
     free(threads);
     free(data);
 
- 
+
     return 0;
 }

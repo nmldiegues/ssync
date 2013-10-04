@@ -10,9 +10,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include <pthread.h>
 #include "utils.h"
 #include "atomic_ops.h"
@@ -23,10 +21,10 @@
 
 typedef struct ticketlock_t 
 {
-  volatile uint32_t head;
-  volatile uint32_t tail;
+    volatile uint32_t head;
+    volatile uint32_t tail;
 #ifdef ADD_PADDING
-  uint8_t padding[CACHE_LINE_SIZE - 8];
+    uint8_t padding[CACHE_LINE_SIZE - 8];
 #endif
 } ticketlock_t;
 

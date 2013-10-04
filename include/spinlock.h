@@ -10,9 +10,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#ifndef __sparc__
 #include <numa.h>
-#endif
 #include <pthread.h>
 #include "atomic_ops.h"
 #include "utils.h"
@@ -22,23 +20,19 @@
 #define MAX_DELAY 1000
 
 typedef volatile uint32_t spinlock_index_t;
-#ifdef __tile__
-typedef uint32_t spinlock_lock_data_t;
-#else
 typedef uint8_t spinlock_lock_data_t;
-#endif
 
 typedef struct spinlock_lock_t 
 {
-  union 
-  {
-    spinlock_lock_data_t lock;
+    union
+    {
+        spinlock_lock_data_t lock;
 #ifdef ADD_PADDING
-    uint8_t padding[CACHE_LINE_SIZE];
+        uint8_t padding[CACHE_LINE_SIZE];
 #else
-    uint8_t padding;
+        uint8_t padding;
 #endif
-  };
+    };
 } spinlock_lock_t;
 
 
@@ -54,7 +48,7 @@ void spinlock_unlock(spinlock_lock_t* the_locks);
 int is_free_spinlock(spinlock_lock_t * the_lock);
 /*
     Some methods for easy lock array manipluation
-*/
+ */
 
 spinlock_lock_t* init_spinlock_array_global(uint32_t num_locks);
 
